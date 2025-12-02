@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat History - CAASHMORA Bank</title>
+
+  <style>
+    :root {
+      --bg: #060c1f;
+      --card: #0f172a;
+      --gold: #f5c542;
+      --light: #fff9db;
+    }
+
+    * { box-sizing: border-box; font-family: "Poppins", system-ui, sans-serif; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #0b132b, #060c1f);
+      color: var(--light);
+      padding: 35px;
+    }
+
+    a.backBtn {
+      display: inline-block;
+      margin-bottom: 20px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--gold);
+      border: 1px solid rgba(245,197,66,0.3);
+      text-decoration: none;
+      font-weight: 600;
+      transition: 0.25s ease;
+    }
+
+    a.backBtn:hover {
+      background: rgba(245,197,66,0.12);
+      box-shadow: 0 0 10px rgba(245,197,66,0.4);
+    }
+
+    .history-box {
+      max-width: 1100px;
+      margin: auto;
+      padding: 25px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, var(--card), #0a1228);
+      border: 1px solid rgba(245,197,66,0.25);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.55), inset 0 0 8px rgba(245,197,66,0.08);
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 18px;
+      text-shadow: 0 0 12px rgba(245,197,66,0.35);
+    }
+
+    .btnRow { display: flex; gap: 12px; margin-bottom: 16px; }
+
+    button.exportBtn {
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(245,197,66,0.35);
+      background: transparent;
+      color: var(--gold);
+      font-weight: 600;
+      cursor: pointer;
+      transition: .25s;
+    }
+
+    button.exportBtn:hover {
+      background: rgba(245,197,66,0.12);
+      box-shadow: 0 0 10px rgba(245,197,66,0.4);
+    }
+
+    .searchBox input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(245,197,66,0.25);
+      background: rgba(255,255,255,0.05);
+      color: var(--light);
+      margin-bottom: 15px;
+      outline: none;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid rgba(245,197,66,0.10); }
+    th { background: linear-gradient(90deg, rgba(245,197,66,0.25), rgba(245,197,66,0.05)); color: #1a1203; }
+    tr:hover td { background: rgba(245,197,66,0.07); transition: 0.2s; }
+
+  </style>
+</head>
+
+<body>
+
+  <a href="{{ url_for('admin_dashboard') }}" class="backBtn">← Back to Dashboard</a>
+
+  <div class="history-box">
+
+    <div class="title">📄 Chat History</div>
+
+    <div class="btnRow">
+      <!-- ✅ Removed PDF button -->
+      <button class="exportBtn" onclick="window.location.href='/export_excel'">📄 Download Excel</button>
+    </div>
+
+    <div class="searchBox">
+      <input type="text" id="search" placeholder="🔍 Search messages...">
+    </div>
+
+    <table id="historyTable">
+      <thead>
+        <tr>
+          <th>User Message</th>
+          <th>Bot Response</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u, b, t in logs %}
+        <tr>
+          <td>{{ u }}</td>
+          <td>{{ b }}</td>
+          <td>{{ t }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+
+<script>
+document.getElementById("search").addEventListener("input", function() {
+  const val = this.value.toLowerCase();
+  document.querySelectorAll("#historyTable tbody tr").forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
+  });
+});
+</script>
+
+</body>
+</html>

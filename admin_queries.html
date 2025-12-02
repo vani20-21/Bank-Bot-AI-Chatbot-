@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAASHMORA Admin – User Queries</title>
+  <style>
+    :root {
+      --bg: #060c1f;
+      --card: #0f172a;
+      --gold: #f5c542;
+      --light: #fff9db;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Poppins", sans-serif;
+      background: radial-gradient(circle at top, #0b132b, #060c1f);
+      color: var(--light);
+      padding: 40px;
+    }
+    h1 {
+      color: var(--gold);
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 26px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 auto;
+      max-width: 1100px;
+      background: rgba(15,23,42,0.6);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(245,197,66,0.25);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    th, td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(245,197,66,0.2);
+      text-align: left;
+    }
+    th {
+      background: rgba(245,197,66,0.15);
+      color: var(--gold);
+      font-weight: 700;
+    }
+    tr:hover td {
+      background: rgba(245,197,66,0.1);
+    }
+    td {
+      word-wrap: break-word;
+      max-width: 300px;
+    }
+    .btn-export {
+      display: block;
+      margin: 30px auto 0;
+      background: linear-gradient(180deg, var(--gold), #e5b039);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      color: #071026;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(229,176,57,0.15);
+      transition: 0.3s;
+    }
+    .btn-export:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 38px rgba(245,197,66,0.35);
+    }
+    .back-btn {
+      display: block;
+      text-align: center;
+      color: var(--gold);
+      margin-top: 25px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .back-btn:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<h1>💬 User Queries</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Account</th>
+      <th>User Message</th>
+      <th>Bot Response</th>
+      <th>Timestamp</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for q in queries %}
+    <tr>
+      <td>{{ q.account }}</td>
+      <td>{{ q.user_message }}</td>
+      <td>{{ q.bot_response }}</td>
+      <td>{{ q.timestamp }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<button class="btn-export" onclick="window.location='/export_excel'">📤 Export All Chats</button>
+
+<a href="/admin_dashboard" class="back-btn">← Back to Dashboard</a>
+
+</body>
+</html>

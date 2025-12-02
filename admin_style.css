@@ -1,0 +1,218 @@
+/* ----------- Global Layout ----------- */
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(145deg, #020617, #081028);
+  color: #fff;
+  overflow-x: hidden;
+}
+
+/* ----------- Header ----------- */
+.topbar {
+  background: #04102a;
+  color: white;
+  box-shadow: 0 4px 20px rgba(255, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.top-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 60px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  width: 70px;
+  margin-right: 15px;
+}
+
+.bank-name {
+  font-size: 1.8rem;
+  color: #2c8cff;
+  font-weight: 700;
+}
+
+.bank-name span {
+  color: #ff4040;
+}
+
+.contact {
+  text-align: right;
+  font-size: 0.9rem;
+  color: #ffd480;
+}
+
+/* ----------- Navigation Bar ----------- */
+.navbar {
+  background: linear-gradient(to right, #b00020, #ff3333);
+  box-shadow: 0 3px 10px rgba(255, 0, 0, 0.3);
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+  display: flex;
+  justify-content: center;
+  gap: 50px;
+}
+
+.nav-list li a {
+  text-decoration: none;
+  color: #fff;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.nav-list li a:hover {
+  color: gold;
+  text-shadow: 0 0 10px gold;
+}
+
+/* ----------- Layout ----------- */
+.main-container {
+  display: grid;
+  grid-template-columns: 1fr 2.5fr;
+  gap: 25px;
+  align-items: start;
+  padding: 50px 70px;
+}
+
+/* ----------- Login Card ----------- */
+.login-section {
+  display: flex;
+  justify-content: center;
+}
+
+.login-card {
+  background: rgba(5, 10, 30, 0.8);
+  backdrop-filter: blur(8px);
+  border-radius: 18px;
+  padding: 25px;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.05),
+              inset 0 0 12px rgba(255, 0, 0, 0.4);
+  width: 85%;
+  text-align: center;
+}
+
+.login-card h3 {
+  margin-bottom: 20px;
+  color: gold;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.btn {
+  display: block;
+  padding: 12px 0;
+  margin: 10px 0;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: 0.3s ease;
+  color: #fff;
+}
+
+.btn.red {
+  background: linear-gradient(to right, #b00020, #ff3333);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+.btn.blue {
+  background: linear-gradient(to right, #0044ff, #008cff);
+  box-shadow: 0 0 10px rgba(0, 140, 255, 0.5);
+}
+
+.btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+}
+
+.links a {
+  display: block;
+  color: #bbb;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  text-decoration: none;
+}
+
+.links a:hover {
+  color: gold;
+}
+
+/* ----------- Banner ----------- */
+.banner-area {
+  position: relative;
+  width: 100%;
+}
+
+.carousel {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 400px;
+  border-radius: 15px;
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.05);
+}
+
+.slide {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 15px;
+}
+
+/* ----------- Info Section ----------- */
+.info-section {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+}
+
+.card {
+  background: rgba(10, 15, 40, 0.9);
+  border-radius: 15px;
+  padding: 20px;
+  flex: 1;
+  margin: 0 10px;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3),
+              inset 0 0 10px rgba(255, 255, 255, 0.05);
+  transition: 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+}
+
+.card h3 {
+  color: gold;
+}
+
+.card ul {
+  list-style: none;
+  padding: 0;
+  color: #ddd;
+}
+
+.card ul li {
+  margin: 5px 0;
+}
+
+/* ----------- Footer ----------- */
+.footer {
+  background: #030b1f;
+  text-align: center;
+  padding: 25px;
+  font-size: 0.85rem;
+  color: #aaa;
+  border-top: 2px solid #ff3333;
+  margin-top: 50px;
+}

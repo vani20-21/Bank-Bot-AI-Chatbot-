@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAASHMORA BankBot</title>
+</head>
+<body>
+    <h2>Welcome to CAASHMORA Bank Virtual Assistant 💬</h2>
+    <form id="chatForm">
+        <input type="text" id="userInput" placeholder="Type your message..." required>
+        <button type="submit">Send</button>
+    </form>
+    <div id="chatBox"></div>
+
+    <script>
+        const form = document.getElementById("chatForm");
+        const chatBox = document.getElementById("chatBox");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const userInput = document.getElementById("userInput").value;
+            chatBox.innerHTML += `<p><b>You:</b> ${userInput}</p>`;
+            document.getElementById("userInput").value = "";
+
+            const res = await fetch("/get", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `msg=${encodeURIComponent(userInput)}`
+            });
+            const data = await res.json();
+            chatBox.innerHTML += `<p><b>Bot:</b> ${data.response}</p>`;
+        });
+    </script>
+</body>
+</html>

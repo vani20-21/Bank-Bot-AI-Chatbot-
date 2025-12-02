@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CAASHMORA Assistant</title>
+  <style>
+    :root{
+      --bg:#071026; --card:#0f172a; --gold:#f5c542; --muted:#c7b78f;
+    }
+    *{box-sizing:border-box;font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,var(--bg),#071424);color:#fff;display:flex;flex-direction:column;}
+    header{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:14px 18px;color:var(--gold);font-weight:700;border-bottom:1px solid rgba(245,197,66,0.05)}
+    .chat-container{max-width:720px;margin:18px auto;display:flex;flex-direction:column;height:calc(100vh - 86px);border-radius:12px;overflow:hidden;border:1px solid rgba(245,197,66,0.06);background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.01));}
+    .chat-box{flex:1;padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px;}
+    .msg{max-width:78%;padding:12px 14px;border-radius:12px;line-height:1.4;white-space:pre-wrap;}
+    .bot{background:linear-gradient(180deg, rgba(245,197,66,0.12), rgba(245,197,66,0.06));color:#fff;align-self:flex-start;border:1px solid rgba(245,197,66,0.06);}
+    .user{background:var(--gold);color:#071026;align-self:flex-end;}
+    form{display:flex;padding:12px;border-top:1px solid rgba(245,197,66,0.04);background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);}
+    input{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#fff;outline:none}
+    button{margin-left:10px;padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(180deg,var(--gold), #e5b039);cursor:pointer;font-weight:700}
+    .meta{font-size:12px;color:var(--muted);margin-top:4px;align-self:flex-start;}
+    .intent-chip{display:inline-block;background:#111;padding:4px 8px;border-radius:8px;color:var(--gold);font-weight:600;margin-top:4px}
+  </style>
+</head>
+<body>
+  <header>💬 CAASHMORA Assistant</header>
+
+  <div class="chat-container" role="region" aria-label="chat">
+    <div id="chatBox" class="chat-box">
+      <div class="msg bot">🤖 Hello! I'm your CAASHMORA Bank Assistant. How can I help you today?</div>
+    </div>
+
+    <form id="chatForm">
+      <input id="userInput" placeholder="Type your message..." autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chatBox');
+    const chatForm = document.getElementById('chatForm');
+    const userInput = document.getElementById('userInput');
+
+    fetch('/reset_context', { method: 'POST' }).catch(()=>{});
+
+    function addBot(msg, intent){
+      const d = document.createElement('div'); 
+      d.className = 'msg bot'; 
+      d.innerHTML = msg;
+      chatBox.appendChild(d);
+
+      // ✅ intent appears below the bot message, aligned left
+      if(intent){
+        const m = document.createElement('div');
+        m.className = 'meta';
+        m.innerHTML = `<span class="intent-chip">Intent: ${intent}</span>`;
+        chatBox.appendChild(m);
+      }
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function addUser(text){
+      const d = document.createElement('div'); 
+      d.className = 'msg user'; 
+      d.textContent = text;
+      chatBox.appendChild(d); 
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    chatForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const text = userInput.value.trim();
+      if(!text) return;
+      addUser(text);
+      userInput.value = '';
+      try{
+        const res = await fetch('/get_response', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        addBot(data.response, data.intent); // ✅ intent below bot reply
+      }catch(e){
+        addBot('⚠️ Server error. Please try again later.');
+      }
+    });
+  </script>
+</body>
+</html>

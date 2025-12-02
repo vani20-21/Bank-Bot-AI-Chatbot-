@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CAASHMORA Bank - Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/admin_style.css') }}">
+  <style>
+    body {
+      background: radial-gradient(circle at top left, #020b25, #000315);
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* HEADER */
+    .topbar {
+      background-color: #01112c;
+      color: #ffd700;
+      padding: 10px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .brand .logo {
+      width: 70px;
+      border-radius: 8px;
+    }
+
+    .bank-name {
+      color: #00aaff;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .bank-name span {
+      color: #ff4040;
+    }
+
+    .contact {
+      text-align: right;
+      font-size: 14px;
+      color: #ffd700;
+    }
+
+    /* NAVIGATION */
+    .navbar {
+      background-color: #c00000;
+      text-align: center;
+    }
+
+    .nav-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+    }
+
+    .nav-list li {
+      position: relative;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      padding: 14px 10px;
+      transition: color 0.3s;
+    }
+
+    .nav-list li:hover {
+      color: #ffd700;
+    }
+
+    /* DROPDOWN */
+    .dropdown {
+      display: none;
+      position: absolute;
+      top: 45px;
+      left: 0;
+      background: #02122f;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+      padding: 10px 20px;
+      z-index: 10;
+    }
+
+    .nav-list li:hover .dropdown {
+      display: block;
+    }
+
+    .dropdown a {
+      display: block;
+      color: #fff;
+      text-decoration: none;
+      margin: 5px 0;
+      font-size: 14px;
+      transition: 0.3s;
+    }
+
+    .dropdown a:hover {
+      color: #ffd700;
+    }
+
+    /* MAIN LAYOUT */
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+    }
+
+    .top-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 40px;
+      width: 85%;
+    }
+
+    /* LOGIN PANEL */
+    .login-card {
+      background: rgba(2, 13, 38, 0.9);
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
+      text-align: center;
+      width: 300px;
+    }
+
+    .login-card h3 {
+      color: #ffd700;
+      margin-bottom: 15px;
+      text-shadow: 0 0 10px #ff0000;
+    }
+
+    .btn {
+      display: block;
+      text-decoration: none;
+      color: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      margin: 8px 0;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn.red { background: #ff4040; }
+    .btn.red:hover { background: #ff1a1a; box-shadow: 0 0 10px #ff4c4c; }
+
+    .btn.blue { background: #007bff; }
+    .btn.blue:hover { background: #0062cc; box-shadow: 0 0 10px #0090ff; }
+
+    .links a {
+      display: block;
+      font-size: 13px;
+      color: #ccc;
+      text-decoration: none;
+      margin-top: 6px;
+    }
+
+    .links a:hover {
+      color: #ffd700;
+    }
+
+    /* BANNER SLIDER */
+    .banner-area {
+      flex-grow: 1;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+    }
+
+    .carousel img {
+      width: 100%;
+      height: 100%;
+      display: none;
+      border-radius: 20px;
+    }
+
+    .carousel img.active {
+      display: block;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(1.02); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* INFO CARDS CENTERED */
+    .info-section {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 60px;
+      text-align: center;
+    }
+
+    .info-section .card {
+      background: rgba(2, 13, 38, 0.95);
+      border-radius: 15px;
+      padding: 25px;
+      width: 250px;
+      box-shadow: 0 0 25px rgba(255, 0, 0, 0.4);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .info-section .card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    }
+
+    .card h3 {
+      color: #ffd700;
+      margin-bottom: 10px;
+    }
+
+    /* FOOTER */
+    .footer {
+      background: #010b1e;
+      text-align: center;
+      color: #ccc;
+      padding: 15px;
+      font-size: 14px;
+      border-top: 1px solid #c00000;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='Images/logo2.png') }}" alt="CAASHMORA Bank" class="logo">
+      <div>
+        <h1 class="bank-name">CAASHMORA <span>Bank</span></h1>
+      </div>
+    </div>
+    <div class="contact">
+      <p>All-India Toll Free Number</p>
+      <strong>1800 123 456 | 1800 654 321</strong>
+    </div>
+  </header>
+
+  <!-- NAVIGATION -->
+  <nav class="navbar">
+    <ul class="nav-list">
+      <li>Central / State Govt. Tax
+        <div class="dropdown">
+          <a href="#">Direct Tax</a>
+          <a href="#">Custom Duty</a>
+          <a href="#">CG e-Challan</a>
+        </div>
+      </li>
+      <li>Fees / Bills
+        <div class="dropdown">
+          <a href="#">Electricity Bill</a>
+          <a href="#">Credit Card</a>
+          <a href="#">Mobile Recharge</a>
+        </div>
+      </li>
+      <li>Download Application Forms
+        <div class="dropdown">
+          <a href="#">Loan Application</a>
+          <a href="#">Debit/Credit Card</a>
+          <a href="#">Account Opening</a>
+        </div>
+      </li>
+      <li>Other Services
+        <div class="dropdown">
+          <a href="#">Apply Loan Online</a>
+          <a href="#">Trading & Demat</a>
+          <a href="#">Mobile Banking</a>
+        </div>
+      </li>
+      <li>Contact Us
+        <div class="dropdown">
+          <a href="#">Customer Care</a>
+          <a href="#">Branch Locator</a>
+          <a href="#">Feedback</a>
+        </div>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main-container">
+    <div class="top-section">
+      <!-- LOGIN CARD -->
+      <div class="login-card">
+        <h3>User Login</h3>
+
+        <!-- Retail User Login -->
+        <a href="{{ url_for('login') }}" class="btn red">Retail User Login</a>
+
+        <!-- Corporate (Admin) Login -->
+        <a href="{{ url_for('admin_login') }}" class="btn blue">Corporate User Login</a>
+
+        <div class="links">
+          <a href="{{ url_for('login') }}">Self User Creation</a>
+          <a href="{{ url_for('login') }}">Forgot/Create Password</a>
+          <a href="{{ url_for('login') }}">Register For Mobile Banking</a>
+        </div>
+      </div>
+
+
+      <!-- SLIDER -->
+      <section class="banner-area">
+        <div class="carousel">
+          <img src="{{ url_for('static', filename='Images/banner1.png') }}" class="active">
+          <img src="{{ url_for('static', filename='Images/banner2.png') }}">
+          <img src="{{ url_for('static', filename='Images/banner3.png') }}">
+          <img src="{{ url_for('static', filename='Images/banner4.png') }}">
+          <img src="{{ url_for('static', filename='Images/banner5.png') }}">
+        </div>
+      </section>
+    </div>
+
+    <!-- INFO CARDS -->
+    <section class="info-section">
+      <div class="card">
+        <h3>Quick Links</h3>
+        <ul>
+          <li>Open Account</li>
+          <li>Apply Loan</li>
+          <li>Branch Locator</li>
+          <li>EMI Calculator</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Latest Notices</h3>
+        <p>All CAASHMORA customers are advised to update challenge questions to enable secure login.</p>
+      </div>
+
+      <div class="card">
+        <h3>Security Tips</h3>
+        <p>Never share your OTP, PIN, or password with anyone. CAASHMORA will never ask for it.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    © {{ current_year if current_year else '' }} CAASHMORA Bank. All rights reserved.
+    <br>Terms & Conditions | Privacy Policy | Contact
+  </footer>
+
+  <!-- SLIDER SCRIPT -->
+  <script>
+    const slides = document.querySelectorAll(".carousel img");
+    let index = 0;
+    setInterval(() => {
+      slides[index].classList.remove("active");
+      index = (index + 1) % slides.length;
+      slides[index].classList.add("active");
+    }, 4000);
+  </script>
+</body>
+</html>

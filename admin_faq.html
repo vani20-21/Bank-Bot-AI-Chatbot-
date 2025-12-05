@@ -23,7 +23,13 @@
       color: var(--gold);
       text-align: center;
       font-size: 26px;
-      margin-bottom: 30px;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 25px;
     }
     .container {
       max-width: 900px;
@@ -35,43 +41,10 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
 
-    form {
-      margin-bottom: 30px;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 12px;
-      border-radius: 8px;
-      border: none;
-      background: rgba(255,255,255,0.08);
-      color: white;
-      font-size: 14px;
-      outline: none;
-    }
-    input:focus, textarea:focus {
-      box-shadow: 0 0 0 2px rgba(245,197,66,0.4);
-    }
-    button {
-      background: linear-gradient(180deg, var(--gold), #e5b039);
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      color: #071026;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 8px 18px rgba(229,176,57,0.15);
-      transition: 0.25s ease;
-    }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 15px 30px rgba(229,176,57,0.3);
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
+      margin-top: 5px;
       font-size: 15px;
     }
     th, td {
@@ -86,11 +59,7 @@
     tr:hover td {
       background: rgba(245,197,66,0.08);
     }
-    a.delete {
-      color: #ff6b6b;
-      text-decoration: none;
-      font-weight: 600;
-    }
+
     .back-btn {
       display: inline-block;
       margin-top: 20px;
@@ -100,62 +69,36 @@
       font-size: 14px;
     }
     .back-btn:hover { text-decoration: underline; }
-    .delete-btn {
-      background: transparent;
-      border: none;
-      color: #ff4b5c;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .delete-btn:hover {
-      text-decoration: underline;
-    }
-
   </style>
 </head>
 <body>
 
 <h1>❓ FAQ Management</h1>
+<p class="subtitle">
+  These FAQs are automatically generated from the most frequently asked user queries in the chatbot.
+</p>
 
 <div class="container">
-  <!-- Add FAQ Form -->
-  <form action="/add_faq" method="post">
-    <input type="text" name="question" placeholder="Enter new question..." required>
-    <textarea name="answer" placeholder="Enter the answer..." rows="3" required></textarea>
-    <button type="submit">➕ Add FAQ</button>
-  </form>
 
-  <!-- FAQ Table -->
   <table>
     <thead>
       <tr>
-        <th>ID</th>
-        <th>Question</th>
-        <th>Answer</th>
-        <th>Action</th>
+        <th>#</th>
+        <th>Question (User Query)</th>
+        <th>Current Bot Answer</th>
+        <th>Times Asked</th>
       </tr>
     </thead>
     <tbody>
       {% for faq in faqs %}
       <tr>
-        <td>{{ faq["id"] }}</td>
-        <td>{{ faq["question"] }}</td>
-        <td>{{ faq["answer"] }}</td>
-        <td>
-          <form method="post"
-                action="{{ url_for('admin_faq_delete', faq_id=faq['id']) }}"
-                style="display:inline;">
-            <button type="submit" class="delete-btn"
-                    onclick="return confirm('Delete this FAQ?');">
-              🗑 Delete
-            </button>
-          </form>
-        </td>
+        <td>{{ loop.index }}</td>
+        <td>{{ faq["user_message"] }}</td>
+        <td>{{ faq["bot_response"] }}</td>
+        <td>{{ faq["freq"] }}</td>
       </tr>
       {% endfor %}
     </tbody>
-
   </table>
 
   <a href="/admin_dashboard" class="back-btn">← Back to Dashboard</a>

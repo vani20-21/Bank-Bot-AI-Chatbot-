@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>CAASHMORA Admin – Training Data</title>
+  <title>CAASHMORA Admin – Training</title>
   <style>
     :root {
       --bg: #060c1f;
@@ -22,124 +22,251 @@
     h1 {
       color: var(--gold);
       text-align: center;
-      margin-bottom: 25px;
       font-size: 26px;
+      margin-bottom: 10px;
     }
-    .section {
-      max-width: 1000px;
-      margin: 0 auto 40px auto;
-      background: rgba(15,23,42,0.6);
-      border-radius: 12px;
-      padding: 25px;
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 25px;
+    }
+    .container {
+      max-width: 1150px;
+      margin: 0 auto 40px;
+    }
+    
+    .card {
+      background: rgba(15,23,42,0.7);
+      border-radius: 14px;
+      padding: 24px 32px;
+      width: 100%;
       border: 1px solid rgba(245,197,66,0.25);
       box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      margin-bottom: 20px;
     }
-    h2 {
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
       color: var(--gold);
-      font-size: 20px;
-      margin-bottom: 15px;
-      border-bottom: 1px solid rgba(245,197,66,0.3);
-      padding-bottom: 5px;
     }
+    .card small {
+      opacity: 0.8;
+      font-size: 12px;
+    }
+
+    /* form */
+    form {
+      margin-top: 10px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      margin: 8px 0 4px;
+      opacity: 0.9;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255,255,255,0.08);
+      color: white;
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      box-shadow: 0 0 0 2px rgba(245,197,66,0.4);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    button {
+      margin-top: 12px;
+      background: linear-gradient(180deg, var(--gold), #e5b039);
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      color: #071026;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(229,176,57,0.15);
+      transition: 0.25s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px rgba(229,176,57,0.3);
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 10px;
+      font-size: 13px;
     }
     th, td {
-      padding: 12px 14px;
-      border-bottom: 1px solid rgba(245,197,66,0.2);
+      border: 1px solid rgba(245,197,66,0.25);
+      padding: 8px 10px;
       text-align: left;
     }
     th {
       background: rgba(245,197,66,0.15);
       color: var(--gold);
-      font-weight: 700;
     }
     tr:hover td {
-      background: rgba(245,197,66,0.1);
+      background: rgba(245,197,66,0.08);
     }
-    .btn {
-      display: inline-block;
-      margin-top: 15px;
-      background: linear-gradient(180deg, var(--gold), #e5b039);
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      color: #071026;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 10px 25px rgba(229,176,57,0.15);
-      transition: 0.3s;
-    }
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 18px 38px rgba(245,197,66,0.35);
-    }
+
     .back-btn {
-      display: block;
-      text-align: center;
+      display: inline-block;
+      margin: 20px auto 0;
       color: var(--gold);
-      margin-top: 25px;
       text-decoration: none;
       font-weight: 600;
+      font-size: 14px;
+      text-align: center;
     }
     .back-btn:hover { text-decoration: underline; }
+
+    /* Intent dropdown style (with datalist) */
+    input[list="intent-list"] {
+      background: rgba(255,255,255,0.08);
+      color: var(--light);
+    }
+
+    /* scroll container for training dataset */
+    .scroll-table {
+      max-height: 260px;
+      overflow-y: auto;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 20px; }
+    }
   </style>
 </head>
 <body>
 
 <h1>🧠 Chatbot Training Data</h1>
+<p class="subtitle">
+  Add new <b>Question + Intent + Answer</b> to improve the bot. Intents can be reused or you can create a new one.
+</p>
 
-<div class="section">
-  <h2>📚 Existing FAQs</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Question</th>
-        <th>Answer</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for f in faqs %}
-      <tr>
-        <td>{{ f.id }}</td>
-        <td>{{ f.question }}</td>
-        <td>{{ f.answer }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="container">
+
+  <!-- TRAINING FORM (TOP) -->
+  <div class="card">
+    <h2>Add Training Example</h2>
+    <small>Pick a real question from user interactions, choose intent or type new, then provide the correct answer.</small>
+
+    <form method="POST" action="{{ url_for('admin_training') }}">
+      <!-- Question -->
+      <label for="text">User Question</label>
+      <input id="text" name="text" type="text"
+             placeholder="e.g. How do I transfer money using UPI?" required>
+
+      <!-- Intent with datalist (existing + new allowed) -->
+      <label for="intent">Intent</label>
+      <input id="intent"
+             name="intent"
+             list="intent-list"
+             placeholder="Select existing intent or type a new one"
+             required>
+      <datalist id="intent-list">
+        {% for val in intents %}
+          <option value="{{ val }}"></option>
+        {% endfor %}
+      </datalist>
+
+      <!-- Answer -->
+      <label for="response">Bot Answer</label>
+      <textarea id="response" name="response"
+                placeholder="Enter the ideal, correct answer the bot should give."
+                required></textarea>
+
+      <button type="submit">➕ Add to Training Dataset</button>
+    </form>
+  </div>
+
+  <!-- INSIGHTS (BOTTOM) -->
+  <div class="card">
+    <h2>User Question Insights</h2>
+    <small>These tables show what users commonly ask and the latest conversations, for reference while training.</small>
+
+    <h3 style="margin-top:14px;font-size:15px;color:var(--gold);">Top Repeated Questions</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Question</th>
+          <th>Bot Answer</th>
+          <th>Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in faqs %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ row["user_message"] }}</td>
+          <td>{{ row["bot_response"] }}</td>
+          <td>{{ row["freq"] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- TRAINING DATASET VIEW -->
+    <h3 style="margin-top:18px;font-size:15px;color:var(--gold);">
+      Existing Training Dataset (ML)
+    </h3>
+    <small style="font-size:11px;opacity:0.8;">
+      These are the samples currently stored in <b>bankbot_final_expanded1.csv</b> (text, intent, response).
+    </small>
+
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>User Text</th>
+            <th>Intent</th>
+            <th>Response</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in training_data %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row["text"] }}</td>
+            <td>{{ row["intent"] }}</td>
+            <td>{{ row["response"] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+  
+</div>
+<div style="text-align:right; margin-bottom: 20px;">
+    <form method="POST" action="{{ url_for('admin_retrain') }}">
+        <button type="submit"
+                style="background:linear-gradient(180deg,#f5c542,#e5b039);
+                       border:none;padding:10px 20px;border-radius:10px;
+                       color:#071026;font-weight:700;cursor:pointer;
+                       box-shadow:0 10px 25px rgba(229,176,57,0.15);transition:0.3s;">
+            🔁 Retrain Model
+        </button>
+    </form>
 </div>
 
-<div class="section">
-  <h2>💬 Recent User Conversations</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Account</th>
-        <th>User Message</th>
-        <th>Bot Response</th>
-        <th>Timestamp</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for chat in recent_chats %}
-      <tr>
-        <td>{{ chat.account }}</td>
-        <td>{{ chat.user_message }}</td>
-        <td>{{ chat.bot_response }}</td>
-        <td>{{ chat.timestamp }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <button class="btn">🔁 Retrain Chatbot (Coming Soon)</button>
+<div style="text-align:center;">
+  <a href="/admin_dashboard" class="back-btn">← Back to Dashboard</a>
 </div>
-
-<a href="/admin_dashboard" class="back-btn">← Back to Dashboard</a>
 
 </body>
 </html>

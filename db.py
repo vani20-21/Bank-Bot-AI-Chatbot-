@@ -1,6 +1,9 @@
 import sqlite3
+import os
 
-DB_PATH = "bank.db"
+# Path for DB (same directory as app.py)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "bank.db")
 
 
 # ---------------- DATABASE CONNECTION ----------------
@@ -28,7 +31,7 @@ def create_db():
         )
     """)
 
-    # CHAT LOGS TABLE (includes intent & confidence)
+    # CHAT LOGS TABLE (with intent & confidence)
     c.execute("""
         CREATE TABLE IF NOT EXISTS chat_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,7 +68,7 @@ def create_db():
         )
     """)
 
-    # FAQ TABLE
+    # FAQ TABLE (Manual FAQ only)
     c.execute("""
         CREATE TABLE IF NOT EXISTS faq (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,7 +102,7 @@ def verify_admin_login(email, password):
     return row
 
 
-# ---------------- GET USER DETAILS ----------------
+# ---------------- USER ACCOUNT FUNCTIONS ----------------
 def get_user_by_account(account):
     conn = get_db()
     c = conn.cursor()
@@ -109,12 +112,9 @@ def get_user_by_account(account):
     return row
 
 
-# ---------------- BALANCE FUNCTIONS ----------------
 def get_balance(account):
     user = get_user_by_account(account)
-    if user:
-        return user["balance"]
-    return None
+    return user["balance"] if user else None
 
 
 def update_balance(account, new_balance):
@@ -125,22 +125,21 @@ def update_balance(account, new_balance):
     conn.close()
 
 
-# ---------------- TRANSFER FUNDS ----------------
-def transfer_funds(sender_account, receiver_account, amount):
-    sender_balance = get_balance(sender_account)
+# ---------------- TRANSACTION FUNCTIONS ----------------
+def transfer_funds(sender, receiver, amount):
+    sender_balance = get_balance(sender)
     if sender_balance is None or sender_balance < amount:
         return False, "Insufficient Balance"
 
-    receiver = get_user_by_account(receiver_account)
-    if not receiver:
+    receiver_user = get_user_by_account(receiver)
+    if not receiver_user:
         return False, "Receiver account does not exist"
 
-    update_balance(sender_account, sender_balance - amount)
-    update_balance(receiver_account, receiver["balance"] + amount)
+    update_balance(sender, sender_balance - amount)
+    update_balance(receiver, receiver_user["balance"] + amount)
     return True, "Transfer Successful"
 
 
-# ---------------- RECORD TRANSACTION ----------------
 def record_transaction(sender, receiver, receiver_name, amount, mode, status):
     conn = get_db()
     c = conn.cursor()
@@ -152,24 +151,19 @@ def record_transaction(sender, receiver, receiver_name, amount, mode, status):
     conn.close()
 
 
-# ---------------- SAVE CHAT (with intent & confidence) ----------------
-def save_chat(account, user_message, bot_response, intent=None, confidence=None):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO chat_logs (account, user_message, bot_response, intent, confidence)
-        VALUES (?, ?, ?, ?, ?)
-    """, (account, user_message, bot_response, intent, confidence))
-    conn.commit()
-    conn.close()
-
-
-# ---------------- FETCH USER TRANSACTIONS ----------------
 def get_transactions(account):
+    """
+    Return a formatted list of transactions for dashboard:
+    [
+      {date, type, amount, mode, status},
+      ...
+    ]
+    """
     conn = get_db()
     c = conn.cursor()
     c.execute("""
-        SELECT timestamp, sender_account, receiver_account, receiver_name, amount, mode, status
+        SELECT timestamp, sender_account, receiver_account, receiver_name,
+               amount, mode, status
         FROM transactions
         WHERE sender_account=? OR receiver_account=?
         ORDER BY id DESC
@@ -191,12 +185,53 @@ def get_transactions(account):
             "type": txn_type,
             "amount": t["amount"],
             "mode": t["mode"],
-            "status": t["status"]
+            "status": t["status"],
         })
     return formatted
 
 
-# ---------------- DASHBOARD ANALYTICS ----------------
+# ---------------- SAVE & GET CHAT LOGS ----------------
+def save_chat(account, user_message, bot_response, intent=None, confidence=None):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO chat_logs (account, user_message, bot_response, intent, confidence)
+        VALUES (?, ?, ?, ?, ?)
+    """, (account, user_message, bot_response, intent, confidence))
+    conn.commit()
+    conn.close()
+
+
+def get_recent_chats(limit=10):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT account, user_message, bot_response, intent, confidence, timestamp
+        FROM chat_logs
+        ORDER BY id DESC
+        LIMIT ?
+    """, (limit,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+
+# ---------------- AUTO-FAQ / ANALYTICS ----------------
+def get_frequent_questions():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT user_message, bot_response, COUNT(*) AS freq
+        FROM chat_logs
+        WHERE TRIM(user_message) <> ''
+        GROUP BY user_message, bot_response
+        ORDER BY freq DESC
+    """)
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+
 def get_total_queries():
     conn = get_db()
     c = conn.cursor()
@@ -209,26 +244,17 @@ def get_total_queries():
 def get_total_intents():
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT COUNT(DISTINCT intent) FROM chat_logs WHERE intent IS NOT NULL AND intent != ''")
+    c.execute("""
+        SELECT COUNT(DISTINCT intent)
+        FROM chat_logs
+        WHERE intent IS NOT NULL AND intent <> ''
+    """)
     total = c.fetchone()[0]
     conn.close()
     return total
 
 
-def get_recent_chats(limit=5):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        SELECT account, user_message, bot_response, intent, confidence, timestamp
-        FROM chat_logs
-        ORDER BY id DESC LIMIT ?
-    """, (limit,))
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-
-# ---------------- FAQ MANAGEMENT ----------------
+# ---------------- FAQ MANAGEMENT (manual) ----------------
 def get_all_faqs():
     conn = get_db()
     c = conn.cursor()
@@ -254,22 +280,22 @@ def delete_faq(faq_id):
     conn.close()
 
 
-# ---------------- SAFE MIGRATION (add missing columns) ----------------
+# ---------------- SAFE MIGRATION ----------------
 def ensure_columns():
     conn = get_db()
     c = conn.cursor()
     try:
         c.execute("ALTER TABLE chat_logs ADD COLUMN intent TEXT;")
         c.execute("ALTER TABLE chat_logs ADD COLUMN confidence REAL;")
-        print("✅ Columns intent & confidence added successfully.")
+        print("ℹ️ Added missing columns in chat_logs table.")
     except sqlite3.OperationalError:
-        print("ℹ️ Columns already exist, skipping ALTER TABLE.")
+        pass  # already exists
     conn.commit()
     conn.close()
 
 
-# ---------------- MAIN EXECUTION ----------------
+# ---------------- INIT ----------------
 if __name__ == "__main__":
     create_db()
     ensure_columns()
-    print("✅ Database setup complete (with intent & confidence).")
+    print("📌 DB setup complete.")

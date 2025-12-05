@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CAASHMORA Admin Panel</title>
   <style>
+    #sideMenu a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    #sideMenu .icon {
+      font-size: 18px;
+      opacity: 0.85;
+    }
+
     :root {
       --bg: #060c1f;
       --card: #0f172a;
@@ -128,13 +140,14 @@
 
 <!-- SIDEMENU -->
 <div id="sideMenu">
-  <a href="/admin_dashboard">🏠 Dashboard</a>
-  <a href="/admin_training">🧠 Training Data</a>
-  <a href="/admin_queries">💬 User Queries</a>
-  <a href="/admin_faq">❓ FAQs</a>
-  <a href="/admin_chatlogs">📜 Chat Logs</a>
-  <a href="/export_excel">📊 Export Logs</a>
+  <a href="/admin_dashboard"><span class="icon">📈</span> Dashboard</a>
+  <a href="/admin_queries"><span class="icon">🗂</span> User Queries</a>
+  <a href="/admin_faq"><span class="icon">❔</span> FAQs</a>
+  <a href="/admin_training"><span class="icon">🧩</span> Training Data</a>
+  <a href="/admin_chatlogs"><span class="icon">📝</span> Chat Logs</a>
+  <a href="/export_excel"><span class="icon">⬇️</span> Export Logs</a>
 </div>
+
 
 <div class="wrap">
   <div class="welcome">Welcome, Admin</div>
@@ -145,7 +158,7 @@
     <div class="card"><h3>Accuracy</h3><p>{{ accuracy }}</p></div>
     <div class="card"><h3>Last Retrained</h3><p>{{ last_retrained }}</p></div>
   </div>
-
+  
   <div class="queries">
     <h2 style="color: var(--gold); margin-bottom: 12px;">Recent User Queries</h2>
     <table>

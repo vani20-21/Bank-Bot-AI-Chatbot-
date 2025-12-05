@@ -3,12 +3,11 @@ from flask import (
     redirect, url_for, session, flash
 )
 
-import sqlite3
 import csv
 from datetime import datetime, timedelta
 import os
 import traceback
-import importlib  # for retraining milestone_two
+import importlib
 import pandas as pd
 
 # BOT LOGIC (Milestone 2)
@@ -30,44 +29,36 @@ from db import (
     get_recent_chats,
     get_all_faqs,
     add_faq,
-    delete_faq
+    delete_faq,
+    get_frequent_questions,      # auto FAQ from chat_logs
+    create_db,
+    ensure_columns,
 )
 
 # ---------------- FLASK CONFIG ----------------
-app = Flask(__name__, static_folder='static', template_folder='templates')
+app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "bank.db")
-
-# Training CSV used by milestone_two
 TRAINING_FILE = os.path.join(BASE_DIR, "bankbot_final_expanded1.csv")
 APP_TRAINED_AT = datetime.now()
 
+
 # ---------------- RESET BOT CONTEXT ----------------
 def reset_all_bot_context():
-    for fn in ("reset_card", "reset_atm", "reset_loan", "reset_acct"):
-        f = getattr(bot, fn, None)
-        if callable(f):
-            try:
-                f()
-            except:
-                pass
-
     try:
-        bot.memory["flow"] = None
-        bot.memory["step"] = 0
-    except:
+        bot.memory.clear()
+    except Exception:
         pass
 
 
-# ---------------- LOGIN CHECK ----------------
+# ---------------- LOGIN CHECK (USER) ----------------
 def require_login():
     if not session.get("account"):
         return False
     try:
         bot.memory["current_user_account"] = session["account"]
-    except:
+    except Exception:
         pass
     return True
 
@@ -92,16 +83,10 @@ def login():
             user = None
 
         if user:
-            # sqlite3.Row uses dict-style access, not .get()
             session["account"] = user["account_number"]
             session["email"] = user["email"]
             session["name"] = user["name"]
             session["balance"] = user["balance"]
-
-            try:
-                bot.memory["current_user_account"] = user["account_number"]
-            except:
-                pass
 
             reset_all_bot_context()
             return redirect(url_for("dashboard"))
@@ -118,7 +103,7 @@ def dashboard():
         return redirect(url_for("login"))
 
     user = get_user_by_account(session["account"])
-    transactions = get_transactions(session["account"])
+    txns = get_transactions(session["account"])
 
     return render_template(
         "dashboard.html",
@@ -127,7 +112,7 @@ def dashboard():
         balance=user["balance"],
         email=user["email"],
         phone=user["phone"],
-        transactions=transactions
+        transactions=txns,
     )
 
 
@@ -148,7 +133,7 @@ def reset_context():
     return ("", 204)
 
 
-# ---------------- GET BOT RESPONSE (Milestone 2 + ML override) ----------------
+# ---------------- GET BOT RESPONSE ----------------
 @app.route("/get_response", methods=["POST"])
 def get_response():
     if not require_login():
@@ -158,9 +143,7 @@ def get_response():
     if not msg:
         return jsonify({"response": "Please type something."})
 
-    bot.memory["current_user_account"] = session["account"]
-
-    # ---- Step 1: Milestone-2 logic ----
+    # ---- Step 1: Rule-based (Milestone 2) ----
     try:
         result = bot.handle_user_input(msg)
 
@@ -171,30 +154,30 @@ def get_response():
             elif len(result) == 4:
                 intent, entities, reply, confidence = result
             else:
-                intent, entities, reply, confidence = "unknown", {}, "Unexpected bot output.", 0.50
+                intent, entities, reply, confidence = (
+                    "unknown",
+                    {},
+                    "Unexpected bot output.",
+                    0.50,
+                )
         else:
             intent, entities, reply, confidence = "unknown", {}, str(result), 0.50
-
     except Exception as e:
         print("BOT ERROR:", e)
         intent, entities, reply, confidence = "error", {}, "Server error.", 0.0
 
-    # ---- Step 2: ML model override ----
+    # ---- Step 2: ML override when rule-based is confused ----
     try:
         if hasattr(bot, "model") and bot.model is not None:
-            baseline_intent = intent  # from rule-based flow
+            baseline_intent = intent
 
-            # Only use ML when rule-based is confused
             if baseline_intent in ("unknown", "general_banking_info", "out_of_scope"):
                 ml_pred = bot.model.predict([msg])[0]
                 ml_prob = float(max(bot.model.predict_proba([msg])[0]))
-
                 intent = ml_pred
                 confidence = ml_prob
-
     except Exception as e:
         print("ML ERROR:", e)
-
 
     # ---- Step 3: Save chat ----
     try:
@@ -202,15 +185,17 @@ def get_response():
     except Exception as e:
         print("DB SAVE ERROR:", e)
 
-    return jsonify({
-        "response": reply,
-        "intent": intent,
-        "confidence": confidence,
-        "entities": entities
-    })
+    return jsonify(
+        {
+            "response": reply,
+            "intent": intent,
+            "confidence": confidence,
+            "entities": entities,
+        }
+    )
 
 
-# ---------------- CHAT LOGS (USER VIEW) ----------------
+# ---------------- USER CHAT LOGS (only if needed) ----------------
 @app.route("/chat_logs")
 def chat_logs():
     if not require_login():
@@ -218,11 +203,15 @@ def chat_logs():
 
     conn = get_db()
     c = conn.cursor()
-    c.execute("""
+    c.execute(
+        """
         SELECT user_message, bot_response, timestamp
-        FROM chat_logs WHERE account=?
+        FROM chat_logs
+        WHERE account=?
         ORDER BY id DESC
-    """, (session["account"],))
+    """,
+        (session["account"],),
+    )
     rows = c.fetchall()
     conn.close()
 
@@ -230,16 +219,17 @@ def chat_logs():
     for r in rows:
         t = r["timestamp"]
         try:
-            t = datetime.strptime(t, "%Y-%m-%d %H:%M:%S") + timedelta(hours=5, minutes=30)
+            dt = datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
+            t = dt + timedelta(hours=5, minutes=30)
             t = t.strftime("%d %b %Y - %I:%M %p")
-        except:
+        except Exception:
             pass
         formatted.append((r["user_message"], r["bot_response"], t))
 
     return render_template("chat_logs.html", logs=formatted, account=session["account"])
 
 
-# ---------------- EXPORT CHAT LOGS (CSV) ----------------
+# ---------------- EXPORT MESSAGE LOGS ----------------
 @app.route("/export_excel")
 def export_excel():
     conn = get_db()
@@ -248,46 +238,35 @@ def export_excel():
     if session.get("admin"):
         filename = "all_chat_logs.csv"
         filepath = os.path.join(BASE_DIR, filename)
-        c.execute("""
+        c.execute(
+            """
             SELECT account, user_message, bot_response, intent, confidence, timestamp
-            FROM chat_logs ORDER BY id
-        """)
+            FROM chat_logs
+            ORDER BY id
+        """
+        )
     else:
         filename = f"{session['account']}_chat_log.csv"
         filepath = os.path.join(BASE_DIR, filename)
-        c.execute("""
+        c.execute(
+            """
             SELECT user_message, bot_response, intent, confidence, timestamp
-            FROM chat_logs WHERE account=?
+            FROM chat_logs
+            WHERE account=?
             ORDER BY id
-        """, (session["account"],))
+        """,
+            (session["account"],),
+        )
 
-    data = c.fetchall()
+    rows = c.fetchall()
     conn.close()
 
     with open(filepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-
-        if session.get("admin"):
-            writer.writerow(["Account", "User Message", "Bot Response", "Intent", "Confidence", "Time"])
-            for r in data:
-                writer.writerow([
-                    r["account"],
-                    r["user_message"],
-                    r["bot_response"],
-                    r["intent"],
-                    r["confidence"],
-                    r["timestamp"]
-                ])
-        else:
-            writer.writerow(["User Message", "Bot Response", "Intent", "Confidence", "Time"])
-            for r in data:
-                writer.writerow([
-                    r["user_message"],
-                    r["bot_response"],
-                    r["intent"],
-                    r["confidence"],
-                    r["timestamp"]
-                ])
+        if rows:
+            writer.writerow(rows[0].keys())
+        for r in rows:
+            writer.writerow(list(r))
 
     return send_file(filepath, as_attachment=True)
 
@@ -296,10 +275,10 @@ def export_excel():
 @app.route("/admin_login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        email = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
 
-        admin = verify_admin_login(username, password)
+        admin = verify_admin_login(email, password)
 
         if admin:
             session["admin"] = True
@@ -307,16 +286,17 @@ def admin_login():
             session["admin_email"] = admin["email"]
             return redirect(url_for("admin_dashboard"))
 
-        # fallback login (from setup_admin.py)
-        if username == "admin@caashmora.ac.in" and password == "admin@123":
+        # optional hard-coded fallback
+        if email == "admin@caashmora.ac.in" and password == "admin@123":
             session["admin"] = True
             session["admin_name"] = "System Administrator"
-            session["admin_email"] = username
+            session["admin_email"] = email
             return redirect(url_for("admin_dashboard"))
 
         flash("❌ Invalid Admin Email or Password", "error")
 
-    return render_template("admin_login.html")
+    # reuse same Login.html for admin
+    return render_template("Login.html")
 
 
 # ---------------- ADMIN DASHBOARD ----------------
@@ -326,51 +306,67 @@ def admin_dashboard():
         return redirect(url_for("admin_login"))
 
     # ---------- DATASET STATS & TRAINING ACCURACY ----------
+    total_queries = 0
+    total_intents = 0
+    accuracy = "N/A"
+
     try:
-        # use the same df & model that milestone_two trained
-        df = bot.df           # pandas DataFrame from milestone_two
-        model = bot.model     # trained pipeline
+        # Always read from CSV so stats update without restart
+        if os.path.exists(TRAINING_FILE):
+            df = pd.read_csv(TRAINING_FILE, encoding="latin1")
 
-        # total queries & intents from dataset
-        total_queries = len(df)
-        total_intents = df["intent"].astype(str).nunique()
+            total_queries = len(df)
+            total_intents = df["intent"].astype(str).nunique()
 
-        # training accuracy: how many predictions match the true intents
-        X = df["text"].astype(str)
-        y = df["intent"].astype(str)
-        preds = model.predict(X)
-        acc_value = (preds == y).mean() * 100.0
-        accuracy = f"{acc_value:.1f}%"
-
+            # If model loaded, compute training accuracy
+            if hasattr(bot, "model") and bot.model is not None:
+                X = df["text"].astype(str)
+                y = df["intent"].astype(str)
+                preds = bot.model.predict(X)
+                acc_value = (preds == y).mean() * 100.0
+                accuracy = f"{acc_value:.1f}%"
     except Exception as e:
         print("DASHBOARD DATASET / ACCURACY ERROR:", e)
-        # fallback to DB-based counts if something goes wrong
-        total_queries = get_total_queries()
-        total_intents = get_total_intents()
-        accuracy = "N/A"
 
     # ---------- LAST RETRAINED TIME ----------
-    last_retrained = APP_TRAINED_AT.strftime("%d-%m-%Y %I:%M:%S %p")
+    lr_path = os.path.join(BASE_DIR, "last_retrained.txt")
+    if os.path.exists(lr_path):
+        try:
+            with open(lr_path, "r", encoding="utf-8") as f:
+                raw = f.read().strip()
+            if raw:
+                dt = datetime.strptime(raw, "%Y-%m-%d %H:%M:%S")
+                last_retrained = dt.strftime("%d-%m-%Y %I:%M:%S %p")
+            else:
+                last_retrained = "Not retrained yet"
+        except Exception as e:
+            print("LAST_RETRAIN READ ERROR:", e)
+            last_retrained = "Not retrained yet"
+    else:
+        last_retrained = "Not retrained yet"
 
     # ---------- RECENT USER QUERIES TABLE ----------
     recent = get_recent_chats(limit=5)
     formatted = []
     for r in recent:
         conf = r["confidence"]
-
         if conf is None:
             conf_str = "—%"
         else:
-            # confidence is stored as 0–1 in DB; show as percentage
-            conf_str = f"{float(conf) * 100:.1f}%"
+            val = float(conf)
+            if 0 <= val <= 1:
+                val *= 100.0          # 0.7 -> 70.0
+            conf_str = f"{val:.1f}%"
 
-        formatted.append({
-            "account": r["account"],
-            "user_message": r["user_message"],
-            "intent": r["intent"],
-            "confidence": conf_str,
-            "timestamp": r["timestamp"]
-        })
+        formatted.append(
+            {
+                "account": r["account"],
+                "user_message": r["user_message"],
+                "intent": r["intent"],
+                "confidence": conf_str,
+                "timestamp": r["timestamp"],
+            }
+        )
 
     return render_template(
         "admin_dashboard.html",
@@ -378,95 +374,58 @@ def admin_dashboard():
         total_intents=total_intents,
         accuracy=accuracy,
         last_retrained=last_retrained,
-        recent_queries=formatted
+        recent_queries=formatted,
+        chatlogs_url=url_for("admin_chatlogs"),
     )
 
 
-# ---------------- ADMIN: QUERIES (simple view) ----------------
+# ---------------- ADMIN: QUERIES ----------------
 @app.route("/admin_queries")
 def admin_queries():
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    
+
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT account, user_message, bot_response, timestamp FROM chat_logs ORDER BY id DESC")
-    queries = c.fetchall()
+    c.execute(
+        """
+        SELECT account, user_message, bot_response, intent, confidence, timestamp
+        FROM chat_logs
+        ORDER BY id DESC
+    """
+    )
+    rows = c.fetchall()
     conn.close()
-    
-    return render_template("admin_queries.html", queries=queries)
+
+    return render_template("admin_queries.html", queries=rows)
 
 
-# ---------------- ADMIN: FAQ MANAGEMENT (ADD + DELETE) ----------------
-@app.route("/admin_faq", methods=["GET", "POST"])
+# ---------------- ADMIN: AUTO FAQ (from chat logs) ----------------
+@app.route("/admin_faq")
 def admin_faq():
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
-    if request.method == "POST":
-        question = request.form.get("question", "").strip()
-        answer = request.form.get("answer", "").strip()
-
-        if question and answer:
-            add_faq(question, answer)
-            flash("✅ FAQ added successfully.", "success")
-        else:
-            flash("⚠️ Please enter both question and answer.", "error")
-
-        return redirect(url_for("admin_faq"))
-
-    faqs = get_all_faqs()
+    faqs = get_frequent_questions()
     return render_template("admin_faq.html", faqs=faqs)
 
-@app.route("/add_faq", methods=["POST"])
-def add_faq_route():
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
 
-    question = request.form.get("question", "").strip()
-    answer = request.form.get("answer", "").strip()
-
-    if question and answer:
-        add_faq(question, answer)
-        flash("✔ FAQ added successfully!", "success")
-    else:
-        flash("⚠ Both fields required!", "error")
-
-    return redirect(url_for("admin_faq"))
-
-
-@app.post("/admin_faq/delete/<int:faq_id>")
-def admin_faq_delete(faq_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
-
-    delete_faq(faq_id)
-    flash("🗑️ FAQ deleted.", "success")
-    return redirect(url_for("admin_faq"))
-
-
-# ---------------- ADMIN: TRAINING DATA HELPER ----------------
+# ---------------- ADMIN TRAINING ----------------
 def append_training_sample(text, intent, response):
-    """
-    Append a new training row to the CSV used by milestone_two.
-    """
-    # Ensure file exists with header. If missing, create with basic header.
     file_exists = os.path.exists(TRAINING_FILE)
-    with open(TRAINING_FILE, "a", newline="", encoding="latin1") as f:
+    with open(TRAINING_FILE, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if not file_exists:
             writer.writerow(["text", "intent", "response"])
         writer.writerow([text, intent, response])
 
 
-# ---------------- ADMIN: TRAINING PAGE (view + add samples) ----------------
 @app.route("/admin_training", methods=["GET", "POST"])
 def admin_training():
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
     if request.method == "POST":
-        # Form fields from admin_training.html
         text = request.form.get("text", "").strip()
         intent = request.form.get("intent", "").strip()
         response = request.form.get("response", "").strip()
@@ -479,60 +438,47 @@ def admin_training():
 
         return redirect(url_for("admin_training"))
 
-    faqs = get_all_faqs()
-    recent_chats = get_recent_chats(limit=10)
+    # For UI: show frequent questions
+    faqs = get_frequent_questions()
 
-    # You can show recent chats so admin can copy text/intent/response
-    return render_template("admin_training.html", faqs=faqs, recent_chats=recent_chats)
+    # All existing intents from current ML dataset (so admin can reuse)
+    try:
+        intent_values = sorted(set(str(i) for i in bot.df["intent"].unique()))
+    except Exception:
+        intent_values = []
 
+    # Load full training dataset from CSV to display
+    training_data = []
+    try:
+        if os.path.exists(TRAINING_FILE):
+            df_view = pd.read_csv(TRAINING_FILE, encoding="latin1")
+            training_data = df_view.to_dict(orient="records")
+    except Exception as e:
+        print("TRAINING DATA READ ERROR:", e)
 
-# ---------------- ADMIN: FULL CHAT LOGS VIEW ----------------
-# ---------------- ADMIN: FULL CHAT LOGS VIEW ----------------
-@app.route("/admin_chatlogs")
-def admin_chatlogs():
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
-    
-    conn = get_db()
-    c = conn.cursor()
-    # admin sees ALL chats, select only 3 fields (no id)
-    c.execute("""
-        SELECT user_message, bot_response, timestamp
-        FROM chat_logs
-        ORDER BY id DESC
-    """)
-    rows = c.fetchall()
-    conn.close()
-
-    # format exactly like user /chat_logs route
-    formatted = []
-    for r in rows:
-        t = r["timestamp"]
-        try:
-            t = datetime.strptime(t, "%Y-%m-%d %H:%M:%S") + timedelta(hours=5, minutes=30)
-            t = t.strftime("%d %b %Y - %I:%M %p")
-        except:
-            pass
-        formatted.append((r["user_message"], r["bot_response"], t))
-
-    # reuse the SAME template
-    return render_template("chat_logs.html", logs=formatted, account="ADMIN")
+    return render_template(
+        "admin_training.html",
+        faqs=faqs,
+        intents=intent_values,
+        training_data=training_data,
+    )
 
 
-
-# ---------------- ADMIN: RETRAIN MODEL FROM UI ----------------
-@app.post("/admin_retrain")
+# ---------------- ADMIN: RETRAIN MODEL ----------------
+# ---------------- ADMIN: RETRAIN MODEL ----------------
+@app.route("/admin_retrain", methods=["POST"])
 def admin_retrain():
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
     try:
         global bot
-        bot = importlib.reload(bot)   # your existing retrain logic
+        bot = importlib.reload(bot)
         reset_all_bot_context()
 
-        # save real retrain time
-        with open("last_retrained.txt", "w", encoding="utf-8") as f:
+        # Save retrain time to file
+        lr_path = os.path.join(BASE_DIR, "last_retrained.txt")
+        with open(lr_path, "w", encoding="utf-8") as f:
             f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
         flash("✅ Model retrained from latest training data.", "success")
@@ -541,6 +487,36 @@ def admin_retrain():
         flash("❌ Failed to retrain model. Check server logs.", "error")
 
     return redirect(url_for("admin_dashboard"))
+
+
+# ---------------- ADMIN CHAT LOGS ----------------
+@app.route("/admin_chatlogs")
+def admin_chatlogs():
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT user_message, bot_response, timestamp
+        FROM chat_logs
+        ORDER BY id DESC
+    """)
+    rows = c.fetchall()
+    conn.close()
+
+    formatted = []
+    for r in rows:
+        t = r["timestamp"]
+        try:
+            dt = datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
+            t = (dt + timedelta(hours=5, minutes=30)).strftime("%d %b %Y - %I:%M %p")
+        except Exception:
+            pass
+        formatted.append((r["user_message"], r["bot_response"], t))
+
+    return render_template("chat_logs.html", logs=formatted, account="ADMIN")
+
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
@@ -556,12 +532,8 @@ def not_found(_):
     return redirect(url_for("admin_home"))
 
 
-# ---------------- RUN APP ----------------
+# ---------------- RUN SERVER ----------------
 if __name__ == "__main__":
-    try:
-        from db import create_db
-        create_db()
-    except:
-        pass
-
+    create_db()
+    ensure_columns()
     app.run(debug=True, port=5000)

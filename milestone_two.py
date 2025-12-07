@@ -442,9 +442,8 @@ def handle_user_input(user_input):
             )
 
 
-
-        # ===== CARD FLOW (fixed: numbers + text, deterministic replies)
-        if memory.get("menu")=="card":
+    # ===== CARD FLOW (fixed: numbers + text, deterministic replies)
+    if memory.get("menu")=="card":
             c = memory["card"]
 
             # choose type
@@ -556,7 +555,7 @@ def handle_user_input(user_input):
                 reset_card(); memory["menu"]=None
                 return "credit_card_action", {}, msg + "\n\nWould you like to continue?"
 
-	    # ===== ATM FLOW (keep same behavior)
+	# ===== ATM FLOW (keep same behavior)
     if text in ["atm","atms"]:
         memory["menu"]="atm"; reset_atm()
         return "atm_menu", {}, ATM_MENU

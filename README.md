@@ -122,20 +122,6 @@ http://127.0.0.1:5000/
 
 ---
 
-## 🖥️ Application Screenshots
-
-| Feature | Screenshot |
-|--------|------------|
-| User Login Page | ![](static/screenshots/login_page.png) |
-| User Dashboard | ![](static/screenshots/dashboard_page.png) |
-| Chatbot Assistance Window | ![](static/screenshots/chat_window.png) |
-| Admin Dashboard with Analytics | ![](static/screenshots/admin_dashboard.png) |
-| Admin Training Module (Add Intent + Response) | ![](static/screenshots/admin_training.png) |
-| FAQs & Frequent Queries (Auto-Generated) | ![](static/screenshots/faq_page.png) |
-
-> Screenshots demonstrate smooth UI and complete functionality of the virtual assistant system.
----
-
 ### Future Enhancements
 
 * Multi-language chatbot support
